@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  email       String    @unique
+  password    String    // Asegúrate de hashear esto
+  firstName   String
+  lastName    String
+  createdAt   DateTime  @default(now())
+
+  // Relaciones
+  portfolio   Portfolio?
+  movements   Movement[]
+  transactions Transaction[]
+}
+
+model Portfolio {
+  id               Int      @id @default(autoincrement())
+  name             String
+  targetAllocation String // Usaremos String o Json para la asignación
+  
+  // Relación uno a uno con User
+  userId           Int      @unique
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+model Movement {
+  id        Int      @id @default(autoincrement())
+  type      MovementType // Enum definido abajo
+  amount    Decimal
+  date      DateTime
+
+  // Relación muchos a uno con User
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// Para las órdenes de compra/venta
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  stockSymbol String   // Ej: "AAPL", "GOOGL"
+  type      TransactionType // Enum definido abajo
+  quantity  Int
+  price     Decimal
+  date      DateTime
+
+  // Relación muchos a uno con User
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// Enumeraciones de tipos
+enum MovementType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+enum TransactionType {
+  BUY
+  SELL
+}
