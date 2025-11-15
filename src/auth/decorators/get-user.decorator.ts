@@ -3,8 +3,8 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 /**
  * Decorador personalizado para obtener el usuario autenticado.
  * Puede ser usado como:
- * @GetUser() user: UserData // Obtiene todo el objeto de usuario (userId, email, firstName)
- * @GetUser('userId') userId: number // Obtiene solo el ID del usuario
+ * @GetUser() user: UserData 
+ * @GetUser('userId') userId: number 
  */
 export const GetUser = createParamDecorator(
   (data: string, ctx: ExecutionContext) => {

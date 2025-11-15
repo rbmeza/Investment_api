@@ -1,10 +1,9 @@
-// src/auth/auth.service.ts (Versión simplificada)
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { RegisterDto } from './dto/register.dto'; // Necesitarás crear este DTO
-import { LoginDto } from './dto/login.dto';     // Necesitarás crear este DTO
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +16,6 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
     
-    // Crear el usuario
     const user = await this.prisma.user.create({
       data: {
         email: registerDto.email,
@@ -25,15 +23,14 @@ export class AuthService {
         firstName: registerDto.firstName,
         lastName: registerDto.lastName,
       },
-      select: { id: true, email: true, firstName: true }, // Excluir password
+      select: { id: true, email: true, firstName: true },
     });
 
-    // También creamos un portafolio inicial
     await this.prisma.portfolio.create({
         data: {
             name: `${user.firstName}'s Portfolio`,
-            targetAllocation: '{}',
-            userId: user.id
+            userId: user.id,
+            stocksHeld: { "META": 1 }
         }
     });
 
@@ -44,19 +41,16 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const user = await this.prisma.user.findUnique({ where: { email: loginDto.email } });
 
-    if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas.');
-    }
+    if (!user) throw new ForbiddenException('Email ingresado no tiene una cuenta creada.')
 
-    // Compara la contraseña
     const isMatch = await bcrypt.compare(loginDto.password, user.password);
 
-    if (!isMatch) {
-      throw new UnauthorizedException('Credenciales inválidas.');
-    }
+    if (!isMatch) throw new UnauthorizedException('Contraseña inválida.')
 
-    // Generar el Payload (información del usuario para el token)
-    const payload = { email: user.email, sub: user.id };
+    const payload = { 
+      email: user.email, 
+      sub: user.id
+    };
 
     return {
       access_token: this.jwtService.sign(payload),

@@ -1,14 +1,20 @@
-// src/transactions/transactions.controller.ts
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { TransactionsService } from './transactions.service';
 import { RegisterTransactionDto } from './dto/register-transaction.dto';
-import { GetUser } from '../auth/decorators/get-user.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
 
-@Controller('transactions')
+@Controller('investments/transactions')
 @UseGuards(AuthGuard('jwt')) 
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
+
+  @Get('history')
+  getHistory(
+    @GetUser('id') userId: number,
+  ) {
+    return this.transactionsService.getHistory(userId);
+  }
 
   /**
    * Requisito: Registrar una orden de Compra o Venta (POST /transactions)
@@ -17,7 +23,7 @@ export class TransactionsController {
   @HttpCode(HttpStatus.CREATED)
   register(
     @GetUser('userId') userId: number,
-    @Body() registerTransactionDto: RegisterTransactionDto,
+    @Body(ValidationPipe) registerTransactionDto: RegisterTransactionDto,
   ) {
 
     return this.transactionsService.register(userId, registerTransactionDto);

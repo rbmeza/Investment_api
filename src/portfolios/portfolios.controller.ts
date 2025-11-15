@@ -2,9 +2,12 @@ import { Controller, Patch, Body, UseGuards, Get } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PortfoliosService } from './portfolios.service';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
-import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { UpdateValidationPipe } from '../common/pipes/update-validation.pipe';
 
-@Controller('investments/portfolio')
+const PORTFOLIO_UPDATE_ALLOWED_FIELDS = ['name'];
+
+@Controller('portfolio')
 @UseGuards(AuthGuard('jwt')) 
 export class PortfoliosController {
   constructor(private readonly portfoliosService: PortfoliosService) {}
@@ -15,9 +18,10 @@ export class PortfoliosController {
   @Patch()
   update(
     @GetUser('userId') userId: number,
-    @Body() updatePortfolioDto: UpdatePortfolioDto,
+    @Body(new UpdateValidationPipe(PORTFOLIO_UPDATE_ALLOWED_FIELDS)) 
+    updatePortfolioDto: UpdatePortfolioDto
   ) {
-    return this.portfoliosService.update(userId, updatePortfolioDto);
+    return this.portfoliosService.update(userId, updatePortfolioDto as unknown as Record<string, any>);
   }
 
   /**

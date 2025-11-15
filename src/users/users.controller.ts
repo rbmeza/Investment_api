@@ -3,9 +3,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUser } from '../auth/decorators/get-user.decorator';
+import { UpdateValidationPipe } from '../common/pipes/update-validation.pipe';
+
+const USER_UPDATE_ALLOWED_FIELDS = ['firstName', 'lastName'];
 
 @Controller('users')
-// Aplica protección JWT a todas las rutas de este controlador
 @UseGuards(AuthGuard('jwt')) 
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -17,10 +19,10 @@ export class UsersController {
   @Patch('me')
   update(
     @GetUser('userId') userId: number,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body(new UpdateValidationPipe(USER_UPDATE_ALLOWED_FIELDS)) 
+    updateUserDto: UpdateUserDto,
   ) {
-    // La lógica iría aquí, llamando al service
-    return this.usersService.update(userId, updateUserDto);
+    return this.usersService.update(userId, updateUserDto as unknown as Record<string, any>);
   }
 
   /**
@@ -31,7 +33,6 @@ export class UsersController {
   getMe(
     @GetUser() user: any,
   ) {
-    // La información del usuario autenticado (sin password) se encuentra en 'user'
     return user; 
   }
 }

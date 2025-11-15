@@ -1,5 +1,4 @@
-// src/investments/movements/movements.controller.ts
-import { Controller, Post, Body, UseGuards, Get, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Query, HttpCode, HttpStatus, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MovementsService } from './movements.service';
 import { RegisterMovementDto } from './dto/register-movement.dto';
@@ -17,7 +16,7 @@ export class MovementsController {
   @HttpCode(HttpStatus.CREATED)
   register(
     @GetUser('userId') userId: number,
-    @Body() registerMovementDto: RegisterMovementDto,
+    @Body(ValidationPipe) registerMovementDto: RegisterMovementDto,
   ) {
     return this.movementsService.register(userId, registerMovementDto);
   }
@@ -28,7 +27,7 @@ export class MovementsController {
   @Get()
   findAll(
     @GetUser('userId') userId: number,
-    @Query('limit') limit?: string, // Opcional, para controlar cuántos traer
+    @Query('limit') limit?: string,
   ) {
     const parsedLimit = limit ? parseInt(limit, 10) : 10;
     return this.movementsService.findLatest(userId, parsedLimit);

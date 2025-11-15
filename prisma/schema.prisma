@@ -16,10 +16,11 @@ generator client {
 model User {
   id          Int       @id @default(autoincrement())
   email       String    @unique
-  password    String    // Asegúrate de hashear esto
+  password    String    
   firstName   String
   lastName    String
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt @default(now())
 
   // Relaciones
   portfolio   Portfolio?
@@ -28,18 +29,21 @@ model User {
 }
 
 model Portfolio {
-  id               Int      @id @default(autoincrement())
+  id               Int     @id @default(autoincrement())
   name             String
-  targetAllocation String // Usaremos String o Json para la asignación
+  stocksHeld       Json
+  cash             Decimal @default(0.0) 
+
+  // Relación con User
+  userId           Int     @unique
+  user             User    @relation(fields: [userId], references: [id]) 
   
-  // Relación uno a uno con User
-  userId           Int      @unique
-  user             User     @relation(fields: [userId], references: [id])
+  @@map("portfolios")
 }
 
 model Movement {
   id        Int      @id @default(autoincrement())
-  type      MovementType // Enum definido abajo
+  type      MovementType
   amount    Decimal
   date      DateTime
 
@@ -51,8 +55,8 @@ model Movement {
 // Para las órdenes de compra/venta
 model Transaction {
   id        Int      @id @default(autoincrement())
-  stockSymbol String   // Ej: "AAPL", "GOOGL"
-  type      TransactionType // Enum definido abajo
+  stockSymbol String   
+  type      TransactionType 
   quantity  Int
   price     Decimal
   date      DateTime
@@ -60,6 +64,14 @@ model Transaction {
   // Relación muchos a uno con User
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model Stock {
+  id     Int    @id @default(autoincrement())
+  symbol String @unique
+  price  Decimal
+
+  @@map("stocks")
 }
 
 // Enumeraciones de tipos

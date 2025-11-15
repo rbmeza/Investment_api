@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, ValidationPipe } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -13,8 +13,7 @@ export class AuthController {
    */
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() registerDto: RegisterDto) {
-    // El servicio se encarga de hashear y guardar.
+  async register(@Body(ValidationPipe) registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
@@ -24,9 +23,7 @@ export class AuthController {
    */
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    // El servicio maneja la verificación de contraseña y la generación del token.
+  async login(@Body(ValidationPipe) loginDto: LoginDto) {
     return this.authService.login(loginDto);
-    // Retorna: { access_token: '...' }
   }
 }
