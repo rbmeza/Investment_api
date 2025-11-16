@@ -110,7 +110,7 @@ POST /auth/register
 ```json
 POST /auth/login
 {
-  "email": "usuario@example.com",
+  "email": "usuario1@example.com",
   "password": "password123"
 }
 ```
