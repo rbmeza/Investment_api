@@ -38,7 +38,7 @@ API REST para gestión de inversiones y portafolios de acciones, construida con 
    ```
 
 2. **Instalar dependencias**
-```bash
+   ```bash
    npm install
    ```
 
@@ -51,19 +51,19 @@ API REST para gestión de inversiones y portafolios de acciones, construida con 
    ```
 
 4. **Configurar la base de datos**
-```bash
+   ```bash
    # Generar el cliente de Prisma
    npx prisma generate
 
    # Ejecutar migraciones
    npx prisma migrate dev
 
-   # (Opcional) Poblar la base de datos con datos de ejemplo
+   # Poblar la base de datos con datos de ejemplo
    npm run prisma:seed
 ```
 
 5. **Ejecutar la aplicación**
-```bash
+   ```bash
    # Modo desarrollo (con hot-reload)
    npm run start:dev
    
@@ -241,9 +241,8 @@ Representa a los usuarios del sistema.
 - 1:N con `Transaction` (un usuario puede tener múltiples transacciones)
 
 **Justificación:**
-- Se utiliza un modelo de usuario separado para mantener la información de autenticación y perfil separada de la lógica de inversión
-- El email es único para evitar duplicados y facilitar el login
-- Las contraseñas se almacenan hasheadas por seguridad
+- **email único**: Para evitar duplicados y facilitar el login
+- **Contraseñas encriptadas**: Las contraseñas se almacenan hasheadas por seguridad y privacidad
 
 ---
 
@@ -262,7 +261,7 @@ Representa el portafolio de inversiones de un usuario.
 
 **Justificación:**
 - **Relación 1:1 con User**: Cada usuario tiene un único portafolio, simplificando la lógica de negocio y evitando confusión sobre qué portafolio usar
-- **stocksHeld como JSON**: Se eligió almacenar las tenencias como JSON para flexibilidad, permitiendo agregar nuevas acciones sin modificar el esquema.
+- **stocksHeld como JSON**: Se eligió almacenar las tenencias como JSON para flexibilidad, permitiendo agregar nuevas acciones sin modificar el esquema
 - **cash como Decimal**: Se utiliza el tipo `Decimal` de Prisma para evitar problemas de precisión con números de punto flotante en cálculos financieros
 ---
 
@@ -305,7 +304,7 @@ Representa órdenes de compra o venta de acciones.
 
 **Justificación:**
 - **Enum para type**: Garantiza que solo se permitan operaciones válidas
-- **Price en el body**: Se envía price desde el Front para respetar el precio que ve el usuario.
+- **price en el body**: Se envía price desde el Front para respetar el precio al momento de la transacción.
 
 ---
 
@@ -315,13 +314,12 @@ Catálogo de acciones disponibles con sus precios actuales.
 **Campos:**
 - `id`: Identificador único (auto-incremental)
 - `symbol`: Símbolo único de la acción (ej: "AAPL")
-- `price`: Precio actual de la acción (Decimal)
+- `price`: Precio del último cierre (Decimal)
 
 **Justificación:**
-- **Tabla separada de Stock**: Permite mantener un catálogo centralizado de acciones y sus precios actuales
+- **Tabla separada de Stock**: Permite mantener un catálogo centralizado de acciones
 - **symbol único**: Garantiza que no haya duplicados y facilita búsquedas
-- **Precio actualizado**: El precio en esta tabla representa el precio de mercado actual, mientras que el precio en `Transaction` es histórico
-- **Facilita cálculos**: Permite calcular el valor actual del portafolio consultando los precios actuales de las acciones poseídas
+- **Precio actualizado**: El precio en esta tabla representa el precio del último cierre
 
 ---
 
