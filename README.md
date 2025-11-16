@@ -60,7 +60,7 @@ API REST para gestión de inversiones y portafolios de acciones, construida con 
 
    # Poblar la base de datos con datos de ejemplo
    npm run prisma:seed
-```
+   ```
 
 5. **Ejecutar la aplicación**
    ```bash
