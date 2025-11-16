@@ -48,7 +48,6 @@ API REST para gestión de inversiones y portafolios de acciones, construida con 
    ```env
    DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/investment_db"
    JWT_SECRET="tu-secret-key-super-segura"
-   PORT=3000
    ```
 
 4. **Configurar la base de datos**
@@ -75,7 +74,7 @@ API REST para gestión de inversiones y portafolios de acciones, construida con 
    npm run start
    ```
 
-La API estará disponible en `http://localhost:3000` (o el puerto especificado en `PORT`).
+La API estará disponible en `http://localhost:3000`.
 
 ### Scripts Disponibles
 
@@ -83,10 +82,6 @@ La API estará disponible en `http://localhost:3000` (o el puerto especificado e
 |--------|-------------|
 | `npm run start` | Inicia la aplicación en modo producción |
 | `npm run start:dev` | Inicia la aplicación en modo desarrollo con hot-reload |
-| `npm run start:debug` | Inicia la aplicación en modo debug |
-| `npm run build` | Compila el proyecto TypeScript |
-| `npm run test` | Ejecuta las pruebas unitarias |
-| `npm run test:e2e` | Ejecuta las pruebas end-to-end |
 | `npm run prisma:seed` | Pobla la base de datos con datos de ejemplo |
 
 ---
@@ -226,70 +221,6 @@ Authorization: Bearer <token>
 
 ## 🗄️ Modelo de Datos
 
-### Diagrama de Entidades
-
-```
-┌─────────────┐
-│    User     │
-├─────────────┤
-│ id (PK)     │
-│ email       │◄─────┐
-│ password    │      │
-│ firstName   │      │
-│ lastName    │      │
-│ createdAt   │      │
-│ updatedAt   │      │
-└─────────────┘      │
-      │              │
-      │ 1:1          │ 1:N
-      │              │
-      ▼              │
-┌─────────────┐      │
-│  Portfolio  │      │
-├─────────────┤      │
-│ id (PK)     │      │
-│ name        │      │
-│ stocksHeld  │      │
-│ (JSON)      │      │
-│ cash        │      │
-│ userId (FK) │──────┘
-└─────────────┘
-      │
-      │ 1:N
-      │
-      ▼
-┌─────────────┐
-│  Movement   │
-├─────────────┤
-│ id (PK)     │
-│ type        │
-│ (ENUM)      │
-│ amount      │
-│ date        │
-│ userId (FK) │
-└─────────────┘
-
-┌─────────────┐
-│ Transaction │
-├─────────────┤
-│ id (PK)     │
-│ stockSymbol │
-│ type (ENUM) │
-│ quantity    │
-│ price       │
-│ date        │
-│ userId (FK) │
-└─────────────┘
-
-┌─────────────┐
-│    Stock    │
-├─────────────┤
-│ id (PK)     │
-│ symbol (UK) │
-│ price       │
-└─────────────┘
-```
-
 ### Descripción de Modelos
 
 #### 👤 User (Usuario)
@@ -321,20 +252,18 @@ Representa el portafolio de inversiones de un usuario.
 
 **Campos:**
 - `id`: Identificador único (auto-incremental)
-- `name`: Nombre descriptivo del portafolio
+- `name`: Nombre del portafolio
 - `stocksHeld`: Objeto JSON que almacena las acciones poseídas en formato `{ "SYMBOL": cantidad }`
 - `cash`: Efectivo disponible (Decimal para precisión financiera)
 - `userId`: Referencia al usuario propietario (relación 1:1)
 
 **Relaciones:**
-- N:1 con `User` (cada portafolio pertenece a un usuario)
+- 1:1 con `User` (cada portafolio pertenece a un único usuario)
 
 **Justificación:**
 - **Relación 1:1 con User**: Cada usuario tiene un único portafolio, simplificando la lógica de negocio y evitando confusión sobre qué portafolio usar
-- **stocksHeld como JSON**: Se eligió almacenar las tenencias como JSON para flexibilidad, permitiendo agregar nuevas acciones sin modificar el esquema. Esto es adecuado para un MVP, aunque en producción podría considerarse una tabla de relación normalizada
+- **stocksHeld como JSON**: Se eligió almacenar las tenencias como JSON para flexibilidad, permitiendo agregar nuevas acciones sin modificar el esquema.
 - **cash como Decimal**: Se utiliza el tipo `Decimal` de Prisma para evitar problemas de precisión con números de punto flotante en cálculos financieros
-- **Separación de Portfolio y User**: Permite que el portafolio tenga su propio ciclo de vida y facilita futuras extensiones (múltiples portafolios por usuario, portafolios compartidos, etc.)
-
 ---
 
 #### 💸 Movement (Movimiento)
@@ -354,7 +283,6 @@ Representa depósitos y retiros de efectivo.
 - **Enum para type**: Garantiza integridad de datos y facilita consultas y validaciones
 - **Separación de Movements y Transactions**: Los movimientos representan flujo de efectivo (depósitos/retiros), mientras que las transacciones representan operaciones con acciones. Esta separación permite:
   - Auditoría clara de flujos de efectivo vs operaciones de mercado
-  - Reportes diferenciados
   - Validaciones específicas para cada tipo de operación
 - **amount como Decimal**: Precisión en cálculos monetarios
 
@@ -376,10 +304,8 @@ Representa órdenes de compra o venta de acciones.
 - N:1 con `User` (múltiples transacciones pertenecen a un usuario)
 
 **Justificación:**
-- **Almacenamiento de precio histórico**: Se guarda el precio al momento de la transacción, permitiendo análisis histórico y cálculo de ganancias/pérdidas reales
 - **Enum para type**: Garantiza que solo se permitan operaciones válidas
-- **Separación de Transactions y Movements**: Ver justificación en el modelo Movement
-- **stockSymbol como String**: Permite flexibilidad para agregar nuevas acciones sin modificar el esquema, aunque se valida contra la tabla `Stock`
+- **Price en el body**: Se envía price desde el Front para respetar el precio que ve el usuario.
 
 ---
 
@@ -408,7 +334,7 @@ Catálogo de acciones disponibles con sus precios actuales.
 
 #### 💰 Precisión Financiera
 - **Decimal.js**: Se utiliza la librería `decimal.js` para todos los cálculos monetarios, evitando errores de precisión de punto flotante
-- **Validación de fondos**: Se valida que el usuario tenga fondos suficientes antes de permitir compras
+- **Validación de fondos**: Se valida que el usuario tenga fondos suficientes antes de permitir compras o retiros de dinero
 - **Validación de tenencias**: Se valida que el usuario tenga suficientes acciones antes de permitir ventas
 
 #### 🏗️ Arquitectura
@@ -425,60 +351,14 @@ Catálogo de acciones disponibles con sus precios actuales.
 
 ## 🤖 Uso de Inteligencia Artificial
 
-### Estado Actual
-
-Actualmente, la aplicación **no integra inteligencia artificial** en su flujo de trabajo. Todas las operaciones y decisiones se basan en lógica programática tradicional y validaciones de reglas de negocio.
-
-### Oportunidades Futuras de Integración
-
-Aunque no está implementado actualmente, existen varias áreas donde la IA podría agregar valor a la aplicación:
-
-#### 📊 Análisis Predictivo
-- **Predicción de precios de acciones**: Integración con modelos de machine learning para predecir tendencias de precios basados en datos históricos
-- **Análisis de sentimiento**: Procesamiento de noticias financieras y redes sociales para evaluar el sentimiento del mercado
-- **Detección de patrones**: Identificación de patrones en el comportamiento de trading del usuario
-
-#### 💡 Recomendaciones Inteligentes
-- **Sugerencias de inversión**: Recomendaciones personalizadas basadas en el perfil de riesgo del usuario y su historial de transacciones
-- **Optimización de portafolio**: Sugerencias de rebalanceo de portafolio usando algoritmos de optimización
-- **Alertas inteligentes**: Notificaciones proactivas sobre oportunidades de inversión o riesgos potenciales
-
-#### 🔍 Análisis de Datos
-- **Análisis de rendimiento**: Evaluación automática del rendimiento del portafolio con insights generados por IA
-- **Detección de anomalías**: Identificación de transacciones inusuales o patrones sospechosos
-- **Generación de reportes**: Creación automática de reportes de inversión con análisis contextual
-
-#### 🗣️ Asistente Virtual
-- **Chatbot financiero**: Asistente conversacional para responder preguntas sobre inversiones, explicar conceptos financieros o ayudar con decisiones de trading
-- **Análisis de lenguaje natural**: Procesamiento de consultas en lenguaje natural sobre el estado del portafolio
-
-### Consideraciones para Futura Implementación
-
-Si se decide integrar IA en el futuro, se recomienda considerar:
-
-1. **APIs de IA**: Integración con servicios como OpenAI GPT, Anthropic Claude, o modelos especializados en finanzas
-2. **Procesamiento de datos**: Pipeline de datos para entrenar modelos personalizados o fine-tuning de modelos pre-entrenados
-3. **Privacidad y seguridad**: Asegurar que los datos financieros sensibles se manejen de forma segura al interactuar con servicios de IA
-4. **Validación y transparencia**: Implementar mecanismos para validar las recomendaciones de IA y explicar el razonamiento detrás de las decisiones
-5. **Costo-beneficio**: Evaluar el costo de las APIs de IA versus el valor agregado para los usuarios
-
-### Arquitectura Sugerida para IA
-
-Si se implementa IA en el futuro, se podría estructurar de la siguiente manera:
-
-```
-src/
-  ├── ai/
-  │   ├── services/
-  │   │   ├── prediction.service.ts      # Predicciones de precios
-  │   │   ├── recommendation.service.ts  # Recomendaciones
-  │   │   └── analysis.service.ts        # Análisis de datos
-  │   ├── models/
-  │   │   └── (modelos de ML si se entrenan localmente)
-  │   └── ai.module.ts
-```
-
----
+### Flujo de Trabajo y toma de decisiones
+La I.A fue un copiloto a lo largo de todo el proceso de desarrollo. Algunos ejemplos de uso serían:
+- Proponer alternativas de arquitectura y diseño
+- Indicar comandos a ejecutar para instalar dependencias, uso de nest-cli, prisma, etc
+- Generar código para integrar directamente en la aplicación
+- Editar código para obtener un resultado distinto
+- Troubleshooting
+- Generar README.md
 
 ## 🛠️ Tecnologías Utilizadas
 
@@ -501,11 +381,6 @@ src/
 ### Cálculos Financieros
 - **decimal.js**: Librería para aritmética decimal de precisión arbitraria
 
-### Desarrollo
-- **ESLint**: Linter para mantener calidad de código
-- **Prettier**: Formateador de código
-- **Jest**: Framework de testing
-
 ---
 
 ## 📝 Notas Adicionales
@@ -517,7 +392,6 @@ Asegúrate de configurar las siguientes variables en tu archivo `.env`:
 ```env
 DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/investment_db"
 JWT_SECRET="tu-secret-key-super-segura-y-larga"
-PORT=3000
 ```
 
 ### Base de Datos
@@ -527,28 +401,17 @@ La aplicación utiliza PostgreSQL como base de datos. Asegúrate de tener una in
 ### Seed de Datos
 
 El script de seed (`prisma/seed.ts`) crea:
-- 10 acciones de ejemplo (AAPL, MSFT, GOOGL, etc.)
+- 10 acciones de ejemplo ('AAPL','MSFT','GOOGL', 'NVDA', 'AMZN', 'TSLA', 'META', 'JPM', 'V', 'NFLX')
 - 3 usuarios de prueba con sus portafolios
 
 Puedes ejecutarlo con:
 ```bash
 npm run prisma:seed
 ```
-
----
-
-## 📄 Licencia
-
-Este proyecto es privado y no está licenciado para uso público.
+**Importante**: SOLO utilizar acciones de ejemplo para transacciones.
 
 ---
 
 ## 👤 Autor
 
-Desarrollado como parte del proyecto Investment API.
-
----
-
-## 🤝 Contribuciones
-
-Este es un proyecto privado. Las contribuciones externas no están permitidas en este momento.
+R. Meza + Gemini + Cursor
